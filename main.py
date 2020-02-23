@@ -1,19 +1,23 @@
 import pandas as pd 
 import numpy as np 
 from datetime import date
+import matplotlib.pyplot as plt 
+import seaborn as sns 
+
+sns.set_style('darkgrid')
 
 df = pd.read_excel('BackOrderReport.xlsx')
-print(df.dtypes)
-print(df.head())
-# df['Confirmed CTP'].astype
-# df['Confirmed CTP'] = pd.to_datetime(df['Confirmed CTP'])
-# df.astype({'Confirmed CTP': 'date'}).dtypes
-# np.datetime64(date.utcnow()).astype(datetime)
+# print(df.dtypes)
+# print(df.head())
+
+# Load in todays date.
 today = date.today().strftime("%Y-%m-%d")
 
+# Want to separate the data into two dataframes so we can later merge the two dataframes if they occur in both datafrmes
 df_past = df[df['Confirmed CTP'] < today]
 df_future=df[df['Confirmed CTP'] > today]
 
+# Creating our two tables
 table_past = pd.pivot_table(
 	data=df_past,
 	values=['Order Balance', 'Prod Balance'],
@@ -27,6 +31,8 @@ table_future = pd.pivot_table(
 	index=['Sales Order', 'Name', 'Confirmed CTP'],
 	aggfunc={'Order Balance':np.sum, 'Prod Balance':np.sum}
 	)
+
+# Resetting index so we can merge the two tables.
 table_past.reset_index(inplace=True)
 table_future.reset_index(inplace=True)
 
@@ -36,22 +42,23 @@ final_table = table_past.merge(table_future,
 			how='left'
 			)
 
-# test_table = df_past.pivot(index='Sales Order', values=['Confirmed CTP', 'Order Balance', 'Prod Balance'])
-# final_table_1 = table_past.join(table_future,
-# 								on='Sales Order')
-
+# printing out some of our data
+print("**** Table with past dates ****")
 print(table_past)
+print("**** Table with future dates ****")
 print(table_future)
-
+print('**** Final Table ****')
 print(final_table)
 
+# Need to format our date columns as we don't want any of the time values.
 final_table['Confirmed CTP_past'] = final_table['Confirmed CTP_past'].apply(lambda x: x.strftime("%Y-%m-%d"))
 final_table['Confirmed CTP_future'] = final_table['Confirmed CTP_future'].apply(lambda x: None if pd.isna(x) else x.strftime("%Y-%m-%d"))
 
-print(final_table[['Confirmed CTP_past', 'Confirmed CTP_future']].dtypes)
+# print(final_table[['Confirmed CTP_past', 'Confirmed CTP_future']].dtypes)
 
-# final_table.set_index(['Sales Order', 'Name', 'Confirmed CTP_past'])
-
+# Pushing the final pivot table to excel file
 final_table.to_excel('NUReport.xlsx', sheet_name='NU Report', index=False, index_label='Sales Order', na_rep='None')
 
-
+# data visuals
+sns.barplot(x='Last Scanned', y='Prod Balance', data=df_past, palette='pastel',estimator=sum, ci=None)
+plt.show()
