@@ -17,6 +17,11 @@ today = date.today().strftime("%Y-%m-%d")
 df_past = df[df['Confirmed CTP'] < today]
 df_future=df[df['Confirmed CTP'] > today]
 
+df_backorder_analysis = df[df['Confirmed CTP'] < today]
+
+df_backorder_analysis['Confirmed CTP'] = df_backorder_analysis['Confirmed CTP'].apply(lambda x: x.strftime("%Y-%m-%d"))
+
+
 # Creating our two tables
 table_past = pd.pivot_table(
 	data=df_past,
@@ -60,5 +65,19 @@ final_table['Confirmed CTP_future'] = final_table['Confirmed CTP_future'].apply(
 final_table.to_excel('NUReport.xlsx', sheet_name='NU Report', index=False, index_label='Sales Order', na_rep='None')
 
 # data visuals
-sns.barplot(x='Last Scanned', y='Prod Balance', data=df_past, palette='pastel',estimator=sum, ci=None)
+fig, ax = plt.subplots(nrows=3, constrained_layout=True)
+fig.suptitle('Distribution of Backordered Production Status')
+sns.barplot(x='Last Scanned', y='Prod Balance', data=df_backorder_analysis, palette='dark',estimator=sum, ci=None, ax=ax[0])
+ax[0].set_title('Number of Doors To Be Built at The Last Scanned Location.')
+ax[0].set_xlabel('Last Scanned Location')
+ax[0].set_ylabel('Count of Production Balance')
+sns.barplot(x='Confirmed CTP', y='Prod Balance', data=df_backorder_analysis, ax=ax[1], estimator=sum, ci=None, palette='dark')
+ax[1].set_title('Quantity of Production Balance for Each CTP date')
+ax[1].set_xlabel('Confirmed CTP Date')
+ax[1].set_ylabel('Count of Production Balance')
+sns.countplot(y='Name', data=df_backorder_analysis, ax=ax[2], palette='dark')
+ax[2].set_title('Number of Line Items Backordered for Each Customer')
+ax[2].set_xlabel('Count of Line Items')
+ax[2].set_ylabel('Customer Name')
+# plt.tight_layout(pad=0.3)
 plt.show()
